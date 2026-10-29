@@ -86,6 +86,33 @@ class CardMetadataTests(SimpleTestCase):
             "PC, PlayStation 5, Switch",
         )
 
+    def test_game_progress_line_shows_playtime(self):
+        """Games have no progress bar, so a progress line shows the playtime."""
+        from users.card_metadata import card_lines
+
+        user = SimpleNamespace(
+            card_metadata=parse_card_metadata(
+                {
+                    "version": 1,
+                    "types": {"game": {"fields": ["progress", "platforms"]}},
+                }
+            )
+        )
+        item = SimpleNamespace(media_type="game", platforms=["PlayStation 5"])
+        media = SimpleNamespace(progress=754, formatted_progress="12:34")
+        lines = card_lines(user, "game", item, media)
+        self.assertEqual([line["text"] for line in lines], ["12:34", "PlayStation 5"])
+
+        media.aggregated_progress = 900
+        media.formatted_aggregated_progress = "15:00"
+        self.assertEqual(card_lines(user, "game", item, media)[0]["text"], "15:00")
+
+        unplayed = SimpleNamespace(progress=0, formatted_progress="0:00")
+        self.assertEqual(
+            [line["text"] for line in card_lines(user, "game", item, unplayed)],
+            ["PlayStation 5"],
+        )
+
     def test_platform_line_prefers_collection_platforms(self):
         from users.card_metadata import card_lines
 

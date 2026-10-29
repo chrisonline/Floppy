@@ -561,6 +561,13 @@ def _progress(item, media, user):
             return None
         count = int(count)
         return ngettext("%(count)s play", "%(count)s plays", count) % {"count": count}
+    if media_type == MediaTypes.GAME.value:
+        # Same order as the legacy year line: grouped total first, then this row.
+        if _from_obj(media, "aggregated_progress"):
+            return _text(_from_obj(media, "formatted_aggregated_progress"))
+        if progress:
+            return _text(_from_obj(media, "formatted_progress"))
+        return None
     formatted = _from_obj(media, "formatted_progress")
     if formatted:
         return _text(formatted)
@@ -878,7 +885,12 @@ def card_lines(user, media_type, item=None, media=None):
     for line in source:
         parts = []
         for field_id in line.get("fields") or []:
-            if field_id == "progress" and media_type != MediaTypes.MOVIE.value:
+            # Other types show progress as the poster bar; movies and games
+            # have no bar, so their play count or playtime is text.
+            if field_id == "progress" and media_type not in {
+                MediaTypes.MOVIE.value,
+                MediaTypes.GAME.value,
+            }:
                 continue
             renderer = _RENDERERS.get(field_id)
             if renderer is None:
